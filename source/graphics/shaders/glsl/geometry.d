@@ -10,7 +10,7 @@ immutable string geometryVS = q{
 	layout(location = 2) in vec3 vNormal_m;
 	layout(location = 3) in vec3 vTangent_m;
 
-	out vec4 fPosition_s;
+	out vec3 fPosition_w;
 	out vec3 fNormal_w;
 	out vec2 fUV;
 	out vec3 fTangent_w;
@@ -23,8 +23,8 @@ immutable string geometryVS = q{
 	void main( void )
 	{
 		// gl_Position is like SV_Position
-		fPosition_s = worldViewProj * vec4( vPosition_m, 1.0f );
-		gl_Position = fPosition_s;
+		gl_Position = worldViewProj * vec4( vPosition_m, 1.0f );
+		fPosition_w = ( world * vec4( vPosition_m, 1.0f ) ).xyz;
 		fUV = vUV;
 
 		fNormal_w = ( world * vec4( vNormal_m, 0.0f ) ).xyz;
@@ -35,13 +35,14 @@ immutable string geometryVS = q{
 immutable string geometryFS = q{
 	#version 400
 
-	in vec4 fPosition_s;
+	in vec3 fPosition_w;
 	in vec3 fNormal_w;
 	in vec2 fUV;
 	in vec3 fTangent_w;
 
 	layout( location = 0 ) out vec4 color;
 	layout( location = 1 ) out vec4 normal_w;
+	layout( location = 2 ) out vec3 position_w;
 
 	uniform sampler2D diffuseTexture;
 	uniform sampler2D normalTexture;
@@ -72,6 +73,7 @@ immutable string geometryFS = q{
 		vec3 specularSample = texture( specularTexture, fUV ).xyz;
 		color.w = ( specularSample.x + specularSample.y + specularSample.z ) / 3;
 		normal_w = vec4( calculateMappedNormal(), 1.0f );
+		position_w = fPosition_w;
 	}
 };
 

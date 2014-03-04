@@ -34,6 +34,7 @@ public enum ShaderUniform
 	NormalTexture = "normalTexture",
 	SpecularTexture = "specularTexture",
 	DepthTexture = "depthTexture",
+	PositionTexture = "positionTexture",
 	/// Lights
 	LightDirection = "light.direction",
 	LightColor = "light.color",

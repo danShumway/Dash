@@ -37,7 +37,7 @@ private:
 	uint _height, _screenHeight;
 	bool _fullscreen, _backfaceCulling, _vsync;
 	float _fov, _near, _far;
-	uint _deferredFrameBuffer, _diffuseRenderTexture, _normalRenderTexture, _depthRenderTexture;
+	uint _deferredFrameBuffer, _diffuseRenderTexture, _normalRenderTexture, _depthRenderTexture, _positionRenderTexture;
 	// Do not add properties for:
 	mat4 projection;
 	Camera activeCamera;
@@ -63,6 +63,7 @@ public:
 	mixin( Property!_diffuseRenderTexture ); //Alpha channel stores Specular map average
 	mixin( Property!_normalRenderTexture ); //Alpha channel stores nothing important
 	mixin( Property!_depthRenderTexture );
+	mixin( Property!_positionRenderTexture );
 	
 
 	/**
@@ -115,6 +116,13 @@ public:
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
+		glBindTexture( GL_TEXTURE_2D, positionRenderTexture );
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, null );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+
 		glBindTexture( GL_TEXTURE_2D, depthRenderTexture );
 		glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
@@ -125,10 +133,11 @@ public:
 		//And finally set all of these to our frameBuffer
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, diffuseRenderTexture, 0 );
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normalRenderTexture, 0 );
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, positionRenderTexture, 0 );
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthRenderTexture, 0 );
 
-		GLenum[ 2 ] DrawBuffers = [ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 ];
-		glDrawBuffers( 2, DrawBuffers.ptr );
+		GLenum[ 3 ] DrawBuffers = [ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 ];
+		glDrawBuffers( 3, DrawBuffers.ptr );
 		glViewport(0, 0, width, height);
 		updateProjection();
 
@@ -212,11 +221,17 @@ public:
 			glUniform1i( shader.getUniformLocation( ShaderUniform.NormalTexture ), 1 );
 			glActiveTexture( GL_TEXTURE1 );
 			glBindTexture( GL_TEXTURE_2D, normalRenderTexture );
+
+			//position
+			glUniform1i( shader.getUniformLocation( ShaderUniform.PositionTexture ), 2 );
+			glActiveTexture( GL_TEXTURE2 );
+			glBindTexture( GL_TEXTURE_2D, positionRenderTexture );
 			
 			// depth
-			glUniform1i( shader.getUniformLocation( ShaderUniform.DepthTexture ), 2 );
-			glActiveTexture( GL_TEXTURE2 );
+			glUniform1i( shader.getUniformLocation( ShaderUniform.DepthTexture ), 3 );
+			glActiveTexture( GL_TEXTURE3 );
 			glBindTexture( GL_TEXTURE_2D, depthRenderTexture );
+
 		}
 
 		// settings for light pass

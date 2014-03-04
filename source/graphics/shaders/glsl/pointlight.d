@@ -50,6 +50,7 @@ immutable string pointlightFS = q{
 	
 	uniform sampler2D diffuseTexture;
 	uniform sampler2D normalTexture;
+	uniform sampler2D positionTexture;
 	uniform sampler2D depthTexture;
 	uniform PointLight light;
 	uniform vec3 eyePosition_w;
@@ -64,27 +65,27 @@ immutable string pointlightFS = q{
 		vec3 normal = texture( normalTexture, UV ).xyz;
 
 		// pixelPosition is essentially 3D screen space coordinates - x, y, z of the screen
-		vec3 pixelPosition_s = vec3( position_s, texture( depthTexture, UV ).x );
+		vec3 pixelPosition_s = vec3( position_s, texture( depthTexture, UV ).x * 2.0f - 1.0f );
 		// Multiplying screen space coordinates by the inverse viewProjection matrix gives you world coordinates
-		vec4 pixelPosition_w = ( invViewProj * vec4( pixelPosition_s, 1.0f ) );
-		pixelPosition_w /= pixelPosition_w.w;
+		vec3 pixelPosition_w = texture( positionTexture, UV ).xyz;//( invViewProj * vec4( pixelPosition_s, 1.0f ) );
+		//pixelPosition_w /= pixelPosition_w.w;
 
 		// calculate normalized light direction, distance
-		vec3 lightDir = light.pos_w - pixelPosition_w.xyz;
+		vec3 lightDir = light.pos_w - pixelPosition_w;
 		float distance = length( lightDir );
-		lightDir = normalize( lightDir );
+		lightDir = -normalize( lightDir );
 
 		// attenuation = 1 / ( constant + linear*d + quadratic*d^2 )
-		float attenuation = 1; //1 / ( 1 + 2/light.radius*distance + 1/(light.radius*light.radius)*(distance*distance) );
+		float attenuation = 1 / ( 1 + 2/light.radius*distance + 1/(light.radius*light.radius)*(distance*distance) );
 
 		// Diffuse lighting calculations
 		float diffuseScale = clamp( dot( normal, lightDir ), 0, 1 );
 		
 		// Specular lighting calculations
-		vec3 eyeDirection = normalize( pixelPosition_w.xyz - eyePosition_w );
+		vec3 eyeDirection = normalize( pixelPosition_w - eyePosition_w );
 		float specularScale = clamp( dot( eyeDirection, reflect( lightDir, normal ) ), 0, 1 );
 		
-		vec3 diffuse = ( diffuseScale * light.color ) * textureColor * attenuation;
+		vec3 diffuse = ( diffuseScale * light.color ) * textureColor * 1;
 		// "8" is the reflectiveness
 		// textureColor.w is the shininess
 		// specularIntensity is the light's contribution
